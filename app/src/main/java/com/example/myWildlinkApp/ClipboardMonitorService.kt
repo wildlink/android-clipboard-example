@@ -30,13 +30,13 @@ class ClipboardMonitorService : Service() {
                     val nextCursor = concepts?.nextCursor
                     if (nextCursor != null) {
                         // add the new page of concepts to our flat array of all concepts
-                        concepts?.concepts?.forEach{
+                        concepts?.concepts?.forEach {
                             allConcepts.add(it)
                         }
 
-                        Log.d("exampleapp", "Concept count: ".plus(allConcepts.count()))
+                        Log.d("exampleapp", "Concept count: ${allConcepts.count()}")
 
-                        concepts = ApiWrapper.getConcept(kind = "domain", cursor = nextCursor )
+                        concepts = ApiWrapper.getConcept(kind = "domain", cursor = nextCursor)
                     } else {
                         // we're on the last page of concepts now
                         concepts = ApiWrapper.getConcept(kind = "domain")
@@ -44,7 +44,7 @@ class ClipboardMonitorService : Service() {
                 } while (concepts?.nextCursor != null)
 
             } catch (e: ApiWrapperException) {
-                Log.d("exampleapp", "Error ".plus(e.statusCode).plus(" ").plus(e.message))
+                Log.d("exampleapp", "Error ${e.statusCode} ${e.message}")
             }
         }
     }
@@ -74,24 +74,24 @@ class ClipboardMonitorService : Service() {
                 val clipboard = cd.getItemAt(0).text.toString()
 
                 // is the copied text a URL?
-                if (clipboard.startsWith("http")){
+                if (clipboard.startsWith("http")) {
                     val copiedDomain = getDomainName(clipboard)
-                    Log.d("exampleapp", clipboard + " -- domain = " + copiedDomain)
+                    Log.d("exampleapp", "$clipboard  -- domain = $copiedDomain")
 
-                    if (copiedDomain == "wild.link"){
+                    if (copiedDomain == "wild.link") {
                         Log.d("exampleapp", "clipboard is already a wild.link, so stop eval")
                         return
                     }
 
                     // check to see if the copied URL matches a domain in our partner merchants
-                    for (i in allConcepts){
+                    for (i in allConcepts) {
                         if (clipboard.contains(i.Value)) {
-                            Log.d("exampleapp", "MATCHED!!! - " + i.Value)
+                            Log.d("exampleapp", "MATCHED!!! - ${i.Value}")
 
                             // create the wild.link vanity URL
                             doAsync {
                                 val vanity = try {
-                                    Log.d("exampleapp", "creating the vanity URL for " + clipboard)
+                                    Log.d("exampleapp", "creating the vanity URL for $clipboard")
                                     ApiWrapper.createVanity(clipboard)
                                 } catch (e: ApiWrapperException) {
                                     null
@@ -100,7 +100,7 @@ class ClipboardMonitorService : Service() {
                                 uiThread {
                                     vanity?.vanityUrl?.let {
                                         // replace user clipboard with the newly created wild.link
-                                        Log.d("exampleapp", "wild.link created : " + vanity.vanityUrl)
+                                        Log.d("exampleapp", "wild.link created : ${vanity.vanityUrl}")
                                         val clip: ClipData = ClipData.newPlainText("wild.link", vanity.vanityUrl)
                                         cb.primaryClip = clip
                                     }
@@ -119,6 +119,6 @@ class ClipboardMonitorService : Service() {
     }
 
     companion object {
-        val allConcepts:MutableList<Concept> = mutableListOf()
+        val allConcepts: MutableList<Concept> = mutableListOf()
     }
 }

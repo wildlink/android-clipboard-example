@@ -1,3 +1,6 @@
+## android-clipboard-example
+An example Android app using Wildlink's API Wrapper to monitor the clipboard and replace eligible URLs with wild.links
+
 ### Overview
 
 Wildlink offers several products which make it easy to monetize references to brands and products. In this walk-through we'll be describing how to monetize an Android user's clipboard in your host application. By the end of this example, your application will be automatically converting any eligible copied link into a "wild.link." When anyone clicks through a wild.link and makes an eligible purchase, your host app will earn a commission (varies from a flat amount to 1-10% of the sale). You can then choose to split this revenue with your app user as you see fit (i.e. converting to your own points system).
@@ -65,16 +68,16 @@ package com.example.myWildlinkApp
 import android.app.Application
 import me.wildfire.apiwrapper.ApiWrapper
 
-class CustomApplication : Application(){
-  override fun onCreate() {
-    super.onCreate()
+class CustomApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
 
-    ApiWrapper.setAppId("INSERT WILDLINK APP ID")
-    .setConnectTimeout(15000)
-    .setReadTimeout(15000)
-    .setLogLevel(1)
-    .setSecret("INSERT WILDLINK APP SECRET")
-  }
+        ApiWrapper.setAppId("INSERT WILDLINK APP ID")
+            .setConnectTimeout(15000)
+            .setReadTimeout(15000)
+            .setLogLevel(1)
+            .setSecret("INSERT WILDLINK APP SECRET")
+    }
 }
 ```
 
@@ -89,39 +92,40 @@ android:name=".CustomApplication"
 ![](images/media/image6.png)
 
 Now, back in your MainActivity.kt, in your onCreate function, you'll add the following code:
+(It will be necessary to add missing imports)
 
 ```kotlin
 doAsync {
-  // you only have to do this one time in one activity
-  val preferences = getSharedPreferences("myprefs", Context.MODE_PRIVATE)
-  // find if you have previously stored the device
-  var deviceJson = preferences.getString("device",null)
+    // you only have to do this one time in one activity
+    val preferences = getSharedPreferences("myprefs", Context.MODE_PRIVATE)
+    // find if you have previously stored the device
+    var deviceJson = preferences.getString("device", null)
 
-  if( deviceJson == null) {
-    // does not exist save it and set it in the apiwrapper
-    deviceJson = try {
-      ApiWrapper.createDevice()
-      } catch (e: ApiWrapperException) {
-        uiThread {
-          alert("Error creating device ".plus(e.statusCode).plus(" ").plus(e.message)) {
-            }.show()
-          }
-          null
+    if (deviceJson == null) {
+        // does not exist save it and set it in the apiwrapper
+        deviceJson = try {
+            ApiWrapper.createDevice()
+        } catch (e: ApiWrapperException) {
+            uiThread {
+                alert("Error creating device ${e.statusCode} ${e.message}") {
+                }.show()
+            }
+            null
         }
 
         deviceJson?.let {
-          val editor = preferences.edit()
-          editor.putString("device", deviceJson)
-          editor.commit()
-          Log.d("exampleapp","deviceJson : " + deviceJson)
+            val editor = preferences.edit()
+            editor.putString("device", deviceJson)
+            editor.commit()
+            Log.d("exampleapp", "deviceJson : $deviceJson")
 
-          // we'll get back to this service in a moment
-          //ServiceInstaller.installServices(this@MainActivity)
+            // we'll get back to this service in a moment
+            //ServiceInstaller.installServices(this@MainActivity)
         }
-        } else {
-          ApiWrapper.setDevice(Device(deviceJson))
-        }
-      }
+    } else {
+        ApiWrapper.setDevice(Device(deviceJson))
+    }
+}
 ```
 
 This code is calling the ApiWrapper.createDevice() method on a background process (via doAsync) and storing the resulting data (the new device information) in the SharedPreferences. Subsequent launches will use this stored data to re-establish the device via the ApiWrapper.setDevice() method.
@@ -142,7 +146,7 @@ We need to create two new Kotlin files to support our background process:
 In ServiceInstaller.kt place the following content:
 
 ```kotlin
-package com.example.api_wrapper_example_jun_27_2019
+package com.example.myWildlinkApp
 
 import android.content.Context
 import android.content.Intent
@@ -150,13 +154,13 @@ import android.content.Intent
 import android.util.Log
 
 object ServiceInstaller {
-  fun installServices(context: Context) {
-    // start the clipboard watching service
-    Log.d("exampleapp", "attempting to install clipboard monitor service ... ")
+    fun installServices(context: Context) {
+        // start the clipboard watching service
+        Log.d("exampleapp", "attempting to install clipboard monitor service ... ")
 
-    val clipboardIntent = Intent(context, ClipboardMonitorService::class.java)
-    context.startService(clipboardIntent)
-  }
+        val clipboardIntent = Intent(context, ClipboardMonitorService::class.java)
+        context.startService(clipboardIntent)
+    }
 }
 ```
 In ClipboardMonitorService.kt put the following code for now:
@@ -165,7 +169,9 @@ In ClipboardMonitorService.kt put the following code for now:
 package com.example.myWildlinkApp
 
 import android.app.Service
-import android.content.*
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import me.wildfire.apiwrapper.public_models.Concept
@@ -175,36 +181,38 @@ import java.net.URISyntaxException
 
 class ClipboardMonitorService : Service() {
 
-  private val listener = ClipboardManager.OnPrimaryClipChangedListener { performClipboardCheck() }
+    private val listener = ClipboardManager.OnPrimaryClipChangedListener { performClipboardCheck() }
 
-  override fun onCreate() {
-    Log.d("exampleapp", "clipboard monitor service onCreate called")
-    (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).addPrimaryClipChangedListener(listener)
-    var concepts: Concepts? = null
-  }
+    override fun onCreate() {
+        Log.d("exampleapp", "clipboard monitor service onCreate called")
 
-  override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-    return Service.START_REDELIVER_INTENT
-  }
+        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).addPrimaryClipChangedListener(listener)
+        var concepts: Concepts? = null
+    }
 
-  override fun onBind(intent: Intent): IBinder? {
-    return null
-  }
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        return Service.START_REDELIVER_INTENT
+    }
 
-  @Throws(URISyntaxException::class)
-  fun getDomainName(url: String): String {
-    val uri = URI(url)
-    val domain = uri.getHost()
-    return if (domain.startsWith("www.")) domain.substring(4) else domain
-  }
+    override fun onBind(intent: Intent): IBinder? {
+        return null
+    }
 
-  private fun performClipboardCheck() {
-    Log.d("exampleapp", "checking clipboard ... ")
-  }
+    @Throws(URISyntaxException::class)
+    fun getDomainName(url: String): String {
+        val uri = URI(url)
+        val domain = uri.getHost()
+        return if (domain.startsWith("www.")) domain.substring(4) else domain
+    }
 
-  companion object {
-    val allConcepts:MutableList<Concept> = mutableListOf()
-  }
+    private fun performClipboardCheck() {
+        Log.d("exampleapp", "checking clipboard ... ")
+
+    }
+
+    companion object {
+        val allConcepts: MutableList<Concept> = mutableListOf()
+    }
 }
 ```
 
@@ -236,36 +244,36 @@ Now, let's fetch the list of merchant domains via the ApiWrapper and populate a 
 
 ```kotlin
 override fun onCreate() {
-  Log.d("exampleapp", "clipboard monitor service onCreate called")
+    Log.d("exampleapp", "clipboard monitor service onCreate called")
 
-  (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).addPrimaryClipChangedListener(listener)
-  var concepts: Concepts? = null
+    (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).addPrimaryClipChangedListener(listener)
+    var concepts: Concepts? = null
 
-  // fetch the Wildfire domains and store them in prefs so we can consult them as a whitelist
-  doAsync {
-    try {
-      do {
-        val nextCursor = concepts?.nextCursor
-        if (nextCursor != null) {
-          // add the new page of concepts to our flat array of all concepts
-          concepts?.concepts?.forEach{
-            allConcepts.add(it)
-          }
+    // fetch the Wildfire domains and store them in prefs so we can consult them as a whitelist
+    doAsync {
+        try {
+            do {
+                val nextCursor = concepts?.nextCursor
+                if (nextCursor != null) {
+                    // add the new page of concepts to our flat array of all concepts
+                    concepts?.concepts?.forEach {
+                        allConcepts.add(it)
+                    }
 
-          Log.d("exampleapp", "Concept count: ".plus(allConcepts.count()))
+                    Log.d("exampleapp", "Concept count: ${allConcepts.count()}}")
 
-          concepts = ApiWrapper.getConcept(kind = "domain", cursor = nextCursor )
-          } else {
-            // we're on the last page of concepts now
-            concepts = ApiWrapper.getConcept(kind = "domain")
-          }
-          } while (concepts?.nextCursor != null)
+                    concepts = ApiWrapper.getConcept(kind = "domain", cursor = nextCursor)
+                } else {
+                    // we're on the last page of concepts now
+                    concepts = ApiWrapper.getConcept(kind = "domain")
+                }
+            } while (concepts?.nextCursor != null)
 
-          } catch (e: ApiWrapperException) {
-            Log.d("exampleapp", "Error ".plus(e.statusCode).plus(" ").plus(e.message))
-          }
+        } catch (e: ApiWrapperException) {
+            Log.d("exampleapp", "Error ${e.statusCode} ${e.message}")
         }
-      }
+    }
+}
 ```
 
 ![](images/media/image11.png)
@@ -276,39 +284,39 @@ Next, let's evaluate the user's clipboard and determine if we have a URL that we
 
 ```kotlin
 private fun performClipboardCheck() {
-  Log.d("exampleapp", "checking clipboard ... ")
+    Log.d("exampleapp", "checking clipboard ... ")
 
-  val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-  if (cb.hasPrimaryClip()) {
-    val cd = cb.primaryClip
-    if (cd!!.description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
-      val clipboard = cd.getItemAt(0).text.toString()
+    val cb = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    if (cb.hasPrimaryClip()) {
+        val cd = cb.primaryClip
+        if (cd!!.description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+            val clipboard = cd.getItemAt(0).text.toString()
 
-      // is the copied text a URL?
-      if (clipboard.startsWith("http")){
-        val copiedDomain = getDomainName(clipboard)
-        Log.d("exampleapp", clipboard + " -- domain = " + copiedDomain)
+            // is the copied text a URL?
+            if (clipboard.startsWith("http")) {
+                val copiedDomain = getDomainName(clipboard)
+                Log.d("exampleapp", "$clipboard  -- domain = $copiedDomain")
 
-        if (copiedDomain == "wild.link"){
-          Log.d("exampleapp", "clipboard is already a wild.link, so stop eval")
-          return
+                if (copiedDomain == "wild.link") {
+                    Log.d("exampleapp", "clipboard is already a wild.link, so stop eval")
+                    return
+                }
+
+                // check to see if the copied URL matches a domain in our partner merchants
+                for (i in allConcepts) {
+                    if (clipboard.contains(i.Value)) {
+                        Log.d("exampleapp", "MATCHED!!! - ${i.Value}")
+
+                        // we found our matching domain and are creating a wild.link so stop the domain-matching loop
+                        break
+                    }
+                }
+            } else {
+                Log.d("exampleapp", "copied text is not a URL")
+            }
         }
-
-        // check to see if the copied URL matches a domain in our partner merchants
-        for (i in allConcepts){
-          if (clipboard.contains(i.Value)) {
-            Log.d("exampleapp", "MATCHED!!! - " + i.Value)
-
-            // we found our matching domain and are creating a wild.link so stop the domain-matching loop
-            break
-          }
-        }
-        } else {
-          Log.d("exampleapp", "copied text is not a URL")
-        }
-      }
     }
-  }
+}
 ```
 
 Run your application again and try copying a URL for a website like walmart.com (Wildlink's partner list is always changing, but Walmart is usually a pretty safe bet for testing). Note that in logcat you'll get a "MATCHED!!!" message. Try copying something else (i.e. [http://foo.com/](http://foo.com/) or some plain text that isn't a URL) and you'll notice it doesn't match when it's not a URL in the Wildlink network.
@@ -322,22 +330,22 @@ There's just one last step: creating the wild.link based on the user's copied UR
 ```kotlin
 // create the wild.link vanity URL
 doAsync {
-  val vanity = try {
-    Log.d("exampleapp", "creating the vanity URL for " + clipboard)
-    ApiWrapper.createVanity(clipboard)
+    val vanity = try {
+        Log.d("exampleapp", "creating the vanity URL for $clipboard")
+        ApiWrapper.createVanity(clipboard)
     } catch (e: ApiWrapperException) {
-      null
+        null
     }
 
     uiThread {
-      vanity?.vanityUrl?.let {
-        // replace user clipboard with the newly created wild.link
-        Log.d("exampleapp", "wild.link created : " + vanity.vanityUrl)
-        val clip: ClipData = ClipData.newPlainText("wild.link", vanity.vanityUrl)
-        cb.primaryClip = clip
-      }
+        vanity?.vanityUrl?.let {
+            // replace user clipboard with the newly created wild.link
+            Log.d("exampleapp", "wild.link created : ${vanity.vanityUrl}")
+            val clip: ClipData = ClipData.newPlainText("wild.link", vanity.vanityUrl)
+            cb.primaryClip = clip
+        }
     }
-  }
+}
 ```
 
 ![](images/media/image9.png)

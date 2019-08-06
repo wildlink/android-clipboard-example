@@ -78,7 +78,7 @@ class CustomApplication : Application(){
 }
 ```
 
-Replace the APP ID and APP SECRET strings with your actual values (contact [[support@wildlink.me]](mailto:support@wildlink.me) if you need credentials created or if you forgot them).
+Replace the APP ID and APP SECRET strings with your actual values (contact [support@wildlink.me](mailto:support@wildlink.me) if you need credentials created or if you forgot them).
 
 Next, you'll add this CustomApplication to your AndroidManifest.xml. Inside the "application" tag, add the following property:
 
@@ -122,7 +122,7 @@ doAsync {
           ApiWrapper.setDevice(Device(deviceJson))
         }
       }
-      ```
+```
 
 This code is calling the ApiWrapper.createDevice() method on a background process (via doAsync) and storing the resulting data (the new device information) in the SharedPreferences. Subsequent launches will use this stored data to re-establish the device via the ApiWrapper.setDevice() method.
 
@@ -212,9 +212,9 @@ class ClipboardMonitorService : Service() {
 
 Now, in your MainActivity.kt, uncomment the following line:
 
-  -------------------------------------------------------------------
+```kotlin
   ServiceInstaller.installServices(this@MainActivity)
-  -------------------------------------------------------------------
+```
 
 ![](images/media/image4.png)
 
@@ -311,7 +311,7 @@ private fun performClipboardCheck() {
   }
 ```
 
-Run your application again and try copying a URL for a website like walmart.com (Wildlink's partner list is always changing, but Walmart is usually a pretty safe bet for testing). Note that in logcat you'll get a "MATCHED!!!" message. Try copying something else (i.e. [[http://foo.com/]](http://foo.com/) or some plain text that isn't a URL) and you'll notice it doesn't match when it's not a URL in the Wildlink network.
+Run your application again and try copying a URL for a website like walmart.com (Wildlink's partner list is always changing, but Walmart is usually a pretty safe bet for testing). Note that in logcat you'll get a "MATCHED!!!" message. Try copying something else (i.e. [http://foo.com/](http://foo.com/) or some plain text that isn't a URL) and you'll notice it doesn't match when it's not a URL in the Wildlink network.
 
   ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   **Note**: This matching technique is very simplified (using the contains method) and should not be used for production code. A proper matching technique would ensure that the copied domain ends with the merchant domain.
@@ -346,15 +346,15 @@ This last piece of code makes an async call to the ApiWrapper's createVanity met
 
 ### Final Code
 
-You can find the final code for our example in the public Github repository here: [[https://github.com/wildlink/android-clipboard-example]](https://github.com/wildlink/android-clipboard-example)
+You can find the final code for our example in the public Github repository here: [https://github.com/wildlink/android-clipboard-example](https://github.com/wildlink/android-clipboard-example)
 
 ### UX Considerations
 
-In our development of our [[demo Android app]](https://play.google.com/store/apps/details?id=me.wildlink.shareapp&hl=en_US), we found that users wanted to know when their copied URL was converted. We suggest showing the user a local notification (using peek and vibration) as positive feedback that their clipboard contents have changed. This feedback reminds the user of your valuable service which is enabling them to earn and can be a delightful moment where the user is pleasantly surprised to find they can earn on the link they just copied.
+In our development of our [demo Android app](https://play.google.com/store/apps/details?id=me.wildlink.shareapp&hl=en_US), we found that users wanted to know when their copied URL was converted. We suggest showing the user a local notification (using peek and vibration) as positive feedback that their clipboard contents have changed. This feedback reminds the user of your valuable service which is enabling them to earn and can be a delightful moment where the user is pleasantly surprised to find they can earn on the link they just copied.
 
 We also found that sometimes users wanted an Undo option to restore their clipboard contents (usually depending on what the copied URL was and who they were sending it to).
 
-You can find examples of both of these behaviors in our [[demo Android app]](https://play.google.com/store/apps/details?id=me.wildlink.shareapp&hl=en_US).
+You can find examples of both of these behaviors in our [demo Android app](https://play.google.com/store/apps/details?id=me.wildlink.shareapp&hl=en_US).
 
 ### Background Processes
 
@@ -362,4 +362,4 @@ Note that the process started in this example will be terminated with the host a
 
 With Android O, as part of Google's effort to bring more user transparency to long-running processes, Android's policy requires that the host application run a foreground service with accompanying persistent notification.
 
-More information on best practices related to foreground services can be found on the Android Developers Blog: [[https://android-developers.googleblog.com/2018/12/effective-foreground-services-on-android_11.html]](https://android-developers.googleblog.com/2018/12/effective-foreground-services-on-android_11.html)
+More information on best practices related to foreground services can be found on the Android Developers Blog: [https://android-developers.googleblog.com/2018/12/effective-foreground-services-on-android_11.html](https://android-developers.googleblog.com/2018/12/effective-foreground-services-on-android_11.html)

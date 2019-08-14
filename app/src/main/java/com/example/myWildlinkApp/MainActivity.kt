@@ -21,15 +21,15 @@ class MainActivity : AppCompatActivity() {
             // you only have to do this one time in one activity
             val preferences = getSharedPreferences("myprefs", Context.MODE_PRIVATE)
             // find if you have previously stored the device
-            var deviceJson = preferences.getString("device",null)
+            var deviceJson = preferences.getString("device", null)
 
-            if( deviceJson == null) {
+            if (deviceJson == null) {
                 // does not exist save it and set it in the apiwrapper
                 deviceJson = try {
                     ApiWrapper.createDevice()
                 } catch (e: ApiWrapperException) {
                     uiThread {
-                        alert("Error creating device ".plus(e.statusCode).plus(" ").plus(e.message)) {
+                        alert("Error creating device ${e.statusCode} ${e.message}") {
                         }.show()
                     }
                     null
@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
                     val editor = preferences.edit()
                     editor.putString("device", deviceJson)
                     editor.commit()
-                    Log.d("exampleapp","deviceJson : " + deviceJson)
+                    Log.d("exampleapp", "deviceJson : $deviceJson")
 
                     // we'll get back to this service in a moment
                     ServiceInstaller.installServices(this@MainActivity)
